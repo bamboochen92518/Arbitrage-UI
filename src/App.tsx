@@ -28,11 +28,10 @@ ChartJS.register(
 // SOL/USDC pool ID (Raydium mainnet)
 const SOL_USDC_POOL_ID = new PublicKey('58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2');
 
-// Schema for Raydium pool (adjusted offset)
-// https://github.com/raydium-io/raydium-sdk/blob/master/src/liquidity/layout.ts
+// Schema for Raydium pool
 const POOL_SCHEMA = {
   struct: {
-    _padding: { array: { type: 'u8', len: 336 } }, // Adjusted to reach baseVault
+    _padding: { array: { type: 'u8', len: 336 } },
     baseVault: { array: { type: 'u8', len: 32 } },
     quoteVault: { array: { type: 'u8', len: 32 } },
   },
@@ -55,50 +54,41 @@ function App() {
 
     const fetchRaydiumPrice = async () => {
       try {
-        // Use Chainstack RPC
         const connection = new Connection('https://solana-mainnet.core.chainstack.com/27098d57fcb5334739b6917c275dba1c', 'confirmed');
-
-        // Fetch pool info
         const poolInfo = await connection.getAccountInfo(SOL_USDC_POOL_ID);
         if (!poolInfo) {
           throw new Error('Pool not found');
         }
 
-        // Decode minimal pool state
         const poolState = borsh.deserialize(POOL_SCHEMA, poolInfo.data) as {
           baseVault: Uint8Array;
           quoteVault: Uint8Array;
         };
 
-        // Convert byte arrays to PublicKey
         const baseVaultKey = new PublicKey(poolState.baseVault);
         const quoteVaultKey = new PublicKey(poolState.quoteVault);
 
         console.log('Base Vault:', baseVaultKey.toString());
         console.log('Quote Vault:', quoteVaultKey.toString());
 
-        // Get base (SOL) and quote (USDC) vault balances
         const baseVaultBalance = await connection.getTokenAccountBalance(baseVaultKey);
         const quoteVaultBalance = await connection.getTokenAccountBalance(quoteVaultKey);
 
-        // Calculate price: USDC per SOL
-        const baseAmount = baseVaultBalance.value.uiAmount; // SOL amount
-        const quoteAmount = quoteVaultBalance.value.uiAmount; // USDC amount
+        const baseAmount = baseVaultBalance.value.uiAmount;
+        const quoteAmount = quoteVaultBalance.value.uiAmount;
         if (baseAmount === 0) {
           throw new Error('Base amount is zero, cannot calculate price');
         }
-        const fetchedPrice = quoteAmount / baseAmount; // USDC per SOL
+        const fetchedPrice = quoteAmount / baseAmount;
 
         const timestamp = new Date().toLocaleTimeString();
 
-        // Update current price
         setPrice(fetchedPrice);
         console.log(`Raydium SOL/USDC Price: ${fetchedPrice}`);
 
-        // Update price history (limit to 60 points ~ 60 seconds)
         setPriceHistory((prev) => {
           const newHistory = [...prev, { price: fetchedPrice, timestamp }];
-          return newHistory.slice(-60); // Keep last 60 points
+          return newHistory.slice(-60);
         });
 
         setLoading(false);
@@ -110,15 +100,12 @@ function App() {
       }
     };
 
-    // Run immediately and then every 1 second
     fetchRaydiumPrice();
     intervalId = setInterval(fetchRaydiumPrice, 1000);
 
-    // Cleanup interval on unmount
     return () => clearInterval(intervalId);
   }, []);
 
-  // Chart data configuration
   const chartData = {
     labels: priceHistory.map((point) => point.timestamp),
     datasets: [
@@ -133,7 +120,6 @@ function App() {
     ],
   };
 
-  // Chart options
   const chartOptions = {
     responsive: true,
     plugins: {
@@ -162,19 +148,43 @@ function App() {
   };
 
   return (
-    <>
-      <div className="App">
-        <h1>SOL/USDC Price (Raydium)</h1>
-        {loading && <p>Loading...</p>}
-        {error && <p>{error}</p>}
-        {price && (
-          <div>
-            <p>1 SOL = {price.toFixed(6)} USDC</p>
-            <Line data={chartData} options={chartOptions} />
-          </div>
-        )}
+    <div className="container">
+      {/* (a) Title */}
+      <div className="title">
+        <h1>SOL/USDC</h1>
       </div>
-    </>
+
+      {/* (b) Raydium Chart and (c) Placeholder */}
+      <div className="row">
+        <div className="chart-section">
+          <p>Raydium</p>
+          {loading && <p>Loading...</p>}
+          {error && <p>{error}</p>}
+          {price && (
+            <div>
+              <p className="price">1 SOL = {price.toFixed(6)} USDC</p>
+              <Line data={chartData} options={chartOptions} />
+            </div>
+          )}
+        </div>
+        <div className="chart-section placeholder">
+          <p>Other Protocol (C)</p>
+          <p>Placeholder for future chart</p>
+        </div>
+      </div>
+
+      {/* (d) Placeholder and (e) Placeholder */}
+      <div className="row">
+        <div className="chart-section placeholder">
+          <p>Other Protocol (D)</p>
+          <p>Placeholder for future chart</p>
+        </div>
+        <div className="chart-section placeholder">
+          <p>Other Protocol (E)</p>
+          <p>Placeholder for future chart</p>
+        </div>
+      </div>
+    </div>
   );
 }
 
