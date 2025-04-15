@@ -1,0 +1,19 @@
+.App {
+  text-align: center;
+  font-family: Arial, sans-serif;
+  margin-top: 50px;
+  padding: 20px;
+}
+
+h1 {
+  color: #333;
+}
+
+p {
+  font-size: 1.2em;
+  color: #555;
+}
+
+canvas {
+  max-width: 100%;
+}
