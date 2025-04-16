@@ -14,6 +14,7 @@ npm run dev
 ### TODO List
 
 - [x] Create a UI to observe the SOL/USDC pair on Raydium
+- [x] Create a UI to observe the SOL/USDC pair on Orca
 - [ ] Extend support for more token pairs
 - [ ] Integrate additional liquidity pools (e.g., Orca, Meteora, Lifinity, etc.)
 - [ ] Add a button to execute arbitrage automatically

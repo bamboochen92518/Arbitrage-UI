@@ -66,16 +66,6 @@ const ORCA_POOL_SCHEMA = {
   },
 };
 
-const mintLayout = {
-  struct: {
-    mintAuthority: { option: { array: { type: "u8", len: 32 } } },
-    supply: "u64",
-    decimals: "u8",
-    isInitialized: "bool",
-    freezeAuthority: { option: { array: { type: "u8", len: 32 } } },
-  },
-};
-
 // Interface for price data point
 interface PricePoint {
   price: number;
