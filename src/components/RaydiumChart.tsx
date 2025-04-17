@@ -82,7 +82,7 @@ const RaydiumChart: React.FC<RaydiumChartProps> = ({
       {loading && <p>Loading...</p>}
       {error && <p>{error}</p>}
       {price && (
-        <div>
+        <div className="table-section">
           <p className="price">1 SOL = {price.toFixed(6)} USDC</p>
           <Line data={chartData} options={chartOptions} />
         </div>

@@ -1,3 +1,9 @@
+#root {
+  width: 100%; /* Full viewport width */
+  min-height: 100vh; /* Full viewport height */
+  box-sizing: border-box; /* Ensures padding/borders don't add to size */
+}
+
 .container {
   display: grid;
   grid-template-rows: auto auto auto;
@@ -29,13 +35,21 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px 20px 20px 40px; /* Top: 20px, Right: 20px, Bottom: 20px, Left: 40px */
+  padding: 20px 20px 20px 20px; /* Top: 20px, Right: 20px, Bottom: 20px, Left: 20px */
   background-color: #f9f9f9;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   width: calc(100%);
   margin: 0px;
   box-sizing: border-box;
+}
+
+.table-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: calc(100%);
+  margin: 0px;
 }
 
 .chart-section h2 {

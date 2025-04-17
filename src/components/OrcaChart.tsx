@@ -82,7 +82,7 @@ const OrcaChart: React.FC<OrcaChartProps> = ({
       {loading && <p>Loading...</p>}
       {error && <p>{error}</p>}
       {price && (
-        <div>
+        <div className="table-section">
           <p style={{ textAlign: 'center' }}>1 SOL = {price.toFixed(6)} USDC</p>
           <Line data={chartData} options={chartOptions} />
         </div>
