@@ -17,7 +17,7 @@ npm run dev
 - [x] Build a UI to monitor the SOL/USDC pair on Orca
 - [x] Add support for additional token pairs (e.g., POPCAT/SOL, FARTCOIN/SOL)
 - [x] Add buttons to select different token pairs
-- [ ] Write a tutorial on how to add a new token pair
+- [x] Write a tutorial on how to add a new token pair
 - [ ] Extend support for even more token pairs
 - [ ] Integrate additional liquidity pools (e.g., Meteora, Lifinity, etc.)
 - [ ] Visualize different types of Raydium pools (e.g., V4, AMM, Concentrated Liquidity, CPMM) in separate charts
