@@ -7,7 +7,7 @@ import { PricePoint } from './types';
 import './App.css';
 
 // Define available token pairs
-const TOKEN_PAIRS = ['SOL/USDC', 'POPCAT/SOL', 'FARTCOIN/SOL'] as const;
+const TOKEN_PAIRS = ['SOL/USDC', 'POPCAT/SOL', 'FARTCOIN/SOL', 'JTO/SOL'] as const;
 type TokenPair = (typeof TOKEN_PAIRS)[number];
 
 function App() {

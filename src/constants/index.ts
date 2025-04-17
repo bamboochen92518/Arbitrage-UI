@@ -6,6 +6,7 @@ export const RAYDIUM_POOL_IDS = {
   'SOL/USDC': new PublicKey('58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2'), // Example SOL/USDC pool ID
   'POPCAT/SOL': new PublicKey('FRhB8L7Y9Qq41qZXYLtC2nw8An1RJfLLxRF2x9RwLLMo'),
   'FARTCOIN/SOL': new PublicKey('Bzc9NZfMqkXR6fz1DBph7BDf9BroyEf6pnzESP7v5iiw'),
+  'JTO/SOL': new PublicKey('EzLBvtY6gwdz5BGJnKDZGgYrMzm1PLKcxdViqRx5fSL1'),
 };
 
 // Orca pool IDs
@@ -14,6 +15,7 @@ export const ORCA_POOL_IDS = {
   'SOL/USDC': new PublicKey('FpCMFDFGYotvufJ7HrFHsWEiiQCGbkLCtwHiDnh7o28Q'), // Example SOL/USDC pool ID
   'POPCAT/SOL': new PublicKey('AHTTzwf3GmVMJdxWM8v2MSxyjZj8rQR6hyAC3g9477Yj'),
   'FARTCOIN/SOL': new PublicKey('C9U2Ksk6KKWvLEeo5yUQ7Xu46X7NzeBJtd9PBfuXaUSM'),
+  'JTO/SOL': new PublicKey('2UhFnySoJi6c89aydGAGS7ZRemo2dbkFRhvSJqDX4gHJ'),
 };
 
 // Token mints for verification
@@ -22,6 +24,7 @@ export const TOKEN_MINTS = {
   'USDC': new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'), // USDC mint
   'POPCAT': new PublicKey('7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr'),
   'FARTCOIN': new PublicKey('9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump'),
+  'JTO': new PublicKey('jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL'),
 };
 
 // Token decimals (for Orca price adjustments)
@@ -30,6 +33,7 @@ export const TOKEN_DECIMALS = {
   'USDC': 6,
   'POPCAT': 9,
   'FARTCOIN': 6,
+  'JTO': 9,
 };
 
 export const RAYDIUM_POOL_SCHEMA = {
