@@ -11,7 +11,6 @@ import {
 } from 'chart.js';
 import { PricePoint } from '../types';
 
-// Register Chart.js components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -27,6 +26,7 @@ interface OrcaChartProps {
   priceHistory: PricePoint[];
   loading: boolean;
   error: string | null;
+  tokenPair: string;
 }
 
 const OrcaChart: React.FC<OrcaChartProps> = ({
@@ -34,12 +34,15 @@ const OrcaChart: React.FC<OrcaChartProps> = ({
   priceHistory,
   loading,
   error,
+  tokenPair,
 }) => {
+  const [baseToken, quoteToken] = tokenPair.split('/');
+
   const chartData = {
     labels: priceHistory.map((point) => point.timestamp),
     datasets: [
       {
-        label: 'SOL/USDC Price',
+        label: `${baseToken}/${quoteToken} Price`,
         data: priceHistory.map((point) => point.price),
         borderColor: 'rgba(255, 99, 132, 1)',
         backgroundColor: 'rgba(255, 99, 132, 0.2)',
@@ -57,7 +60,7 @@ const OrcaChart: React.FC<OrcaChartProps> = ({
       },
       title: {
         display: true,
-        text: 'SOL/USDC Price Over Time',
+        text: `${baseToken}/${quoteToken} Price Over Time`,
       },
     },
     scales: {
@@ -70,7 +73,7 @@ const OrcaChart: React.FC<OrcaChartProps> = ({
       y: {
         title: {
           display: true,
-          text: 'Price (USDC)',
+          text: `Price (${quoteToken})`,
         },
       },
     },
@@ -83,7 +86,9 @@ const OrcaChart: React.FC<OrcaChartProps> = ({
       {error && <p>{error}</p>}
       {price && (
         <div className="table-section">
-          <p style={{ textAlign: 'center' }}>1 SOL = {price.toFixed(6)} USDC</p>
+          <p style={{ textAlign: 'center' }}>
+            1 {baseToken} = {price.toFixed(6)} {quoteToken}
+          </p>
           <Line data={chartData} options={chartOptions} />
         </div>
       )}

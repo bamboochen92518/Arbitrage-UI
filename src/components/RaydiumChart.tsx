@@ -27,6 +27,7 @@ interface RaydiumChartProps {
   priceHistory: PricePoint[];
   loading: boolean;
   error: string | null;
+  tokenPair: string; // New prop for token pair
 }
 
 const RaydiumChart: React.FC<RaydiumChartProps> = ({
@@ -34,12 +35,16 @@ const RaydiumChart: React.FC<RaydiumChartProps> = ({
   priceHistory,
   loading,
   error,
+  tokenPair,
 }) => {
+  // Split tokenPair into base and quote tokens (e.g., "SOL/USDC" -> "SOL" and "USDC")
+  const [baseToken, quoteToken] = tokenPair.split('/');
+
   const chartData = {
     labels: priceHistory.map((point) => point.timestamp),
     datasets: [
       {
-        label: 'SOL/USDC Price',
+        label: `${baseToken}/${quoteToken} Price`, // Dynamic label
         data: priceHistory.map((point) => point.price),
         borderColor: 'rgba(75, 192, 192, 1)',
         backgroundColor: 'rgba(75, 192, 192, 0.2)',
@@ -57,7 +62,7 @@ const RaydiumChart: React.FC<RaydiumChartProps> = ({
       },
       title: {
         display: true,
-        text: 'SOL/USDC Price Over Time',
+        text: `${baseToken}/${quoteToken} Price Over Time`, // Dynamic title
       },
     },
     scales: {
@@ -70,7 +75,7 @@ const RaydiumChart: React.FC<RaydiumChartProps> = ({
       y: {
         title: {
           display: true,
-          text: 'Price (USDC)',
+          text: `Price (${quoteToken})`, // Dynamic y-axis title
         },
       },
     },
@@ -83,7 +88,7 @@ const RaydiumChart: React.FC<RaydiumChartProps> = ({
       {error && <p>{error}</p>}
       {price && (
         <div className="table-section">
-          <p className="price">1 SOL = {price.toFixed(6)} USDC</p>
+          <p className="price">1 {baseToken} = {price.toFixed(6)} {quoteToken}</p> {/* Dynamic price text */}
           <Line data={chartData} options={chartOptions} />
         </div>
       )}

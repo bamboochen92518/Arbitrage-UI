@@ -81,3 +81,49 @@ canvas {
   align-items: center;
   justify-content: center;
 }
+
+/* New styles for token pair selector */
+.token-pair-selector {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.token-pair-button {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-family: 'Inter', Arial, sans-serif; /* Modern font, fallback to Arial */
+  background: linear-gradient(135deg, #6e8efb 0%, #a777e3 100%); /* Gradient background */
+  color: white;
+  border: none; /* Remove border for a cleaner look */
+  border-radius: 8px; /* Softer corners */
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+}
+
+.token-pair-button:hover {
+  background: linear-gradient(135deg, #5a78e8 0%, #9466d1 100%); /* Slightly darker gradient */
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3); /* Elevated shadow */
+  transform: translateY(-2px); /* Slight lift effect */
+}
+
+.token-pair-button.active {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%); /* Vibrant active gradient */
+  color: white;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+  transform: scale(0.98); /* Subtle press effect */
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .row {
+    grid-template-columns: 1fr; /* Stack charts vertically on small screens */
+  }
+
+  .token-pair-button {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+}

@@ -6,7 +6,14 @@ import { fetchRaydiumPrice, fetchOrcaPrice } from './utils/solana';
 import { PricePoint } from './types';
 import './App.css';
 
+// Define available token pairs
+const TOKEN_PAIRS = ['SOL/USDC', 'POPCAT/SOL', 'FARTCOIN/SOL'] as const;
+type TokenPair = (typeof TOKEN_PAIRS)[number];
+
 function App() {
+  // State for selected token pair
+  const [selectedPair, setSelectedPair] = useState<TokenPair>('SOL/USDC');
+
   // Raydium state
   const [raydiumPrice, setRaydiumPrice] = useState<number | null>(null);
   const [raydiumPriceHistory, setRaydiumPriceHistory] = useState<PricePoint[]>([]);
@@ -23,14 +30,19 @@ function App() {
     let intervalId: NodeJS.Timeout;
 
     const fetchPrices = async () => {
+      // Reset states when fetching new pair
+
+
       await Promise.all([
         fetchRaydiumPrice(
+          selectedPair,
           setRaydiumPrice,
           setRaydiumPriceHistory,
           setRaydiumLoading,
           setRaydiumError
         ),
         fetchOrcaPrice(
+          selectedPair,
           setOrcaPrice,
           setOrcaPriceHistory,
           setOrcaLoading,
@@ -39,33 +51,56 @@ function App() {
       ]);
     };
 
+    // Reset history only when selectedPair changes
+    setRaydiumLoading(true);
+    setOrcaLoading(true);
+    setRaydiumPrice(null);
+    setOrcaPrice(null);
+    setRaydiumError(null);
+    setOrcaError(null);
+    setRaydiumPriceHistory([]);
+    setOrcaPriceHistory([]);
+
     fetchPrices();
     intervalId = setInterval(fetchPrices, 1000);
 
     return () => clearInterval(intervalId);
-  }, []);
+  }, [selectedPair]);
 
   return (
     <div className="container">
       <div className="title">
-        <h1>SOL/USDC</h1>
+      <h1>{selectedPair}</h1> {/* Display selected pair */}
+      </div>
+      <div className="token-pair-selector">
+        {TOKEN_PAIRS.map((pair) => (
+          <button
+            key={pair}
+            className={`token-pair-button ${selectedPair === pair ? 'active' : ''}`}
+            onClick={() => setSelectedPair(pair)}
+          >
+            {pair}
+          </button>
+        ))}
       </div>
       <div className="row">
-        <RaydiumChart
+      <RaydiumChart
           price={raydiumPrice}
           priceHistory={raydiumPriceHistory}
           loading={raydiumLoading}
           error={raydiumError}
+          tokenPair={selectedPair} // Pass selectedPair as tokenPair
         />
         <OrcaChart
           price={orcaPrice}
           priceHistory={orcaPriceHistory}
           loading={orcaLoading}
           error={orcaError}
+          tokenPair={selectedPair} // Pass selectedPair as tokenPair (if OrcaChart is updated)
         />
       </div>
       <div className="row">
-        <PlaceholderChart title="Other Protocol (D)" />
+        <PlaceholderChart title="Other Protocol (Meteora)" />
         <PlaceholderChart title="Other Protocol (E)" />
       </div>
     </div>
