@@ -18,37 +18,74 @@ export const ORCA_POOL_IDS = {
 
 // Token mints for verification
 export const TOKEN_MINTS = {
-  SOL: new PublicKey('So11111111111111111111111111111111111111112'), // SOL mint
-  USDC: new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'), // USDC mint
-  POPCAT: new PublicKey('7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr'),
-  FARTCOIN: new PublicKey('9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump'),
-};
-
-// Pool token order (base/quote as stored in the pool)
-export const RAYDIUM_POOL_TOKEN_ORDER = {
-  'SOL/USDC': { base: 'SOL', quote: 'USDC' }, // Pool stores SOL as base, USDC as quote
-  'POPCAT/SOL': { base: 'POPCAT', quote: 'SOL' }, // Example: Pool might be ETH/SOL
-  'FARTCOIN/SOL': { base: 'SOL', quote: 'FARTCOIN' }, // Adjust based on actual pool
-};
-
-export const ORCA_POOL_TOKEN_ORDER = {
-  'SOL/USDC': { base: 'USDC', quote: 'SOL' }, // Example: Pool might be USDC/SOL
-  'POPCAT/SOL': { base: 'SOL', quote: 'POPCAT' },
-  'FARTCOIN/SOL': { base: 'FARTCOIN', quote: 'SOL' }, // Adjust based on actual pool
+  'SOL': new PublicKey('So11111111111111111111111111111111111111112'), // SOL mint
+  'USDC': new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'), // USDC mint
+  'POPCAT': new PublicKey('7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr'),
+  'FARTCOIN': new PublicKey('9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump'),
 };
 
 // Token decimals (for Orca price adjustments)
 export const TOKEN_DECIMALS = {
-  'SOL/USDC': { base: 9, quote: 6 }, // SOL: 9 decimals, USDC: 6 decimals
-  'POPCAT/SOL': { base: 9, quote: 9 }, // POPCAT: 9 decimals, SOL: 9 decimals
-  'FARTCOIN/SOL': { base: 9, quote: 6 }, // FARTCOIN: 6 decimals, SOL: 9 decimals (adjust as needed)
+  'SOL': 9,
+  'USDC': 6,
+  'POPCAT': 9,
+  'FARTCOIN': 6,
 };
 
 export const RAYDIUM_POOL_SCHEMA = {
   struct: {
-    _padding: { array: { type: 'u8', len: 336 } },
+    status: 'u64',
+    nonce: 'u64',
+    maxOrder: 'u64',
+    depth: 'u64',
+    baseDecimal: 'u64',
+    quoteDecimal: 'u64',
+    state: 'u64',
+    resetFlag: 'u64',
+    minSize: 'u64',
+    volMaxCutRatio: 'u64',
+    amountWaveRatio: 'u64',
+    baseLotSize: 'u64',
+    quoteLotSize: 'u64',
+    minPriceMultiplier: 'u64',
+    maxPriceMultiplier: 'u64',
+    systemDecimalValue: 'u64',
+    minSeparateNumerator: 'u64',
+    minSeparateDenominator: 'u64',
+    tradeFeeNumerator: 'u64',
+    tradeFeeDenominator: 'u64',
+    pnlNumerator: 'u64',
+    pnlDenominator: 'u64',
+    swapFeeNumerator: 'u64',
+    swapFeeDenominator: 'u64',
+    baseNeedTakePnl: 'u64',
+    quoteNeedTakePnl: 'u64',
+    quoteTotalPnl: 'u64',
+    baseTotalPnl: 'u64',
+    poolOpenTime: 'u64',
+    punishPcAmount: 'u64',
+    punishCoinAmount: 'u64',
+    orderbookToInitTime: 'u64',
+    swapBaseInAmount: 'u128',
+    swapQuoteOutAmount: 'u128',
+    swapBase2QuoteFee: 'u64',
+    swapQuoteInAmount: 'u128',
+    swapBaseOutAmount: 'u128',
+    swapQuote2BaseFee: 'u64',
     baseVault: { array: { type: 'u8', len: 32 } },
     quoteVault: { array: { type: 'u8', len: 32 } },
+    baseMint: { array: { type: 'u8', len: 32 } },
+    quoteMint: { array: { type: 'u8', len: 32 } },
+    lpMint: { array: { type: 'u8', len: 32 } },
+    openOrders: { array: { type: 'u8', len: 32 } },
+    marketId: { array: { type: 'u8', len: 32 } },
+    marketProgramId: { array: { type: 'u8', len: 32 } },
+    targetOrders: { array: { type: 'u8', len: 32 } },
+    withdrawQueue: { array: { type: 'u8', len: 32 } },
+    lpVault: { array: { type: 'u8', len: 32 } },
+    owner: { array: { type: 'u8', len: 32 } },
+    lpReserve: 'u64',
+    padding: { array: { type: 'u64', len: 3 } },
   },
 };
 

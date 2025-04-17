@@ -1,7 +1,19 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import * as borsh from 'borsh';
-import { RAYDIUM_POOL_IDS, ORCA_POOL_IDS, TOKEN_DECIMALS, RAYDIUM_POOL_SCHEMA, ORCA_POOL_SCHEMA, RAYDIUM_POOL_TOKEN_ORDER, ORCA_POOL_TOKEN_ORDER, TOKEN_MINTS } from '../constants';
+import { RAYDIUM_POOL_IDS, ORCA_POOL_IDS, TOKEN_DECIMALS, RAYDIUM_POOL_SCHEMA, ORCA_POOL_SCHEMA, TOKEN_MINTS } from '../constants';
 import { PricePoint } from '../types';
+import { use } from 'react';
+
+// Helper function to map token mint (Uint8Array) to token name
+const getTokenName = (mint: Uint8Array): string | null => {
+  const mintPublicKey = new PublicKey(mint);
+  for (const [tokenName, tokenMint] of Object.entries(TOKEN_MINTS)) {
+    if (tokenMint.equals(mintPublicKey)) {
+      return tokenName;
+    }
+  }
+  return null; // Return null if no match found
+};
 
 export const fetchRaydiumPrice = async (
   tokenPair: string,
@@ -22,9 +34,12 @@ export const fetchRaydiumPrice = async (
       throw new Error(`Raydium pool not found for ${tokenPair}`);
     }
 
-    const poolState = borsh.deserialize(RAYDIUM_POOL_SCHEMA, poolInfo.data) as {
+    const poolData = poolInfo.data;
+    const poolState = borsh.deserialize(RAYDIUM_POOL_SCHEMA, poolData) as {
       baseVault: Uint8Array;
       quoteVault: Uint8Array;
+      baseMint: Uint8Array;
+      quoteMint: Uint8Array;
     };
 
     const baseVaultKey = new PublicKey(poolState.baseVault);
@@ -35,12 +50,16 @@ export const fetchRaydiumPrice = async (
 
     const baseAmount = baseVaultBalance.value.uiAmount;
     const quoteAmount = quoteVaultBalance.value.uiAmount;
+
     if (baseAmount === 0) {
       throw new Error(`Raydium base amount is zero for ${tokenPair}`);
     }
 
     // Get pool token order
-    const poolOrder = RAYDIUM_POOL_TOKEN_ORDER[tokenPair as keyof typeof RAYDIUM_POOL_TOKEN_ORDER];
+    const poolOrder = {
+      'base': getTokenName(poolState.baseVault), 
+      'quote': getTokenName(poolState.quoteVault)
+    };
     if (!poolOrder) {
       throw new Error(`Raydium pool token order not found for ${tokenPair}`);
     }
@@ -50,7 +69,7 @@ export const fetchRaydiumPrice = async (
 
     // Adjust price if pool order differs from user-selected tokenPair
     const [userBase, userQuote] = tokenPair.split('/');
-    if (poolOrder.base !== userBase || poolOrder.quote !== userQuote) {
+    if (poolOrder.base === userQuote && poolOrder.quote === userBase) {
       // Invert price if pool order is reversed (e.g., pool is USDC/SOL, user wants SOL/USDC)
       fetchedPrice = 1 / fetchedPrice;
     }
@@ -109,31 +128,26 @@ export const fetchOrcaPrice = async (
     let rawPrice = Math.pow(sqrtPriceF64 / Number(Q64), 2.0);
 
     // Get pool token order from tokenMintA and tokenMintB
-    const tokenMintA = new PublicKey(poolState.tokenMintA);
-    const tokenMintB = new PublicKey(poolState.tokenMintB);
     const [userBase, userQuote] = tokenPair.split('/');
-    const poolOrder = ORCA_POOL_TOKEN_ORDER[tokenPair as keyof typeof ORCA_POOL_TOKEN_ORDER];
+    const poolOrder = {
+      'base': getTokenName(poolState.tokenMintA), 
+      'quote': getTokenName(poolState.tokenMintB)
+    };
 
-    // Verify pool order using token mints
-    const userBaseMint = TOKEN_MINTS[userBase as keyof typeof TOKEN_MINTS];
-    const userQuoteMint = TOKEN_MINTS[userQuote as keyof typeof TOKEN_MINTS];
-    let isReversed = false;
-    if (tokenMintA.equals(userQuoteMint) && tokenMintB.equals(userBaseMint)) {
-      // Pool is quote/base (e.g., USDC/SOL), user wants base/quote (e.g., SOL/USDC)
-      isReversed = true;
-      rawPrice = 1 / rawPrice; // Invert price
-    }
-
-    // Apply decimal adjustment
-    const decimals = TOKEN_DECIMALS[tokenPair as keyof typeof TOKEN_DECIMALS];
-    if (!decimals) {
+    // Apply decimal adjustment using individual token decimals
+    const decimalsA = TOKEN_DECIMALS[poolOrder.base as keyof typeof TOKEN_DECIMALS];
+    const decimalsB = TOKEN_DECIMALS[poolOrder.quote as keyof typeof TOKEN_DECIMALS];
+    if (decimalsA === undefined || decimalsB === undefined) {
       throw new Error(`Decimal configuration not found for ${tokenPair}`);
     }
-    const { base: decimalsA, quote: decimalsB } = isReversed
-      ? { base: decimals.quote, quote: decimals.base } // Swap decimals if reversed
-      : decimals;
     const power = Math.pow(10, decimalsA - decimalsB);
-    const finalPrice = rawPrice * power;
+    let finalPrice = rawPrice * power;
+
+    // Verify pool order using token mints
+    if (poolOrder['base'] === userQuote && poolOrder['quote'] === userBase) {
+      // Pool is quote/base (e.g., USDC/SOL), user wants base/quote (e.g., SOL/USDC)
+      finalPrice = 1 / finalPrice; // Invert price
+    }
 
     const timestamp = new Date().toLocaleTimeString();
 
