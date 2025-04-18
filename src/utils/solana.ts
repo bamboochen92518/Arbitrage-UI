@@ -57,8 +57,8 @@ export const fetchRaydiumPrice = async (
 
     // Get pool token order
     const poolOrder = {
-      'base': getTokenName(poolState.baseVault), 
-      'quote': getTokenName(poolState.quoteVault)
+      'base': getTokenName(poolState.baseMint), 
+      'quote': getTokenName(poolState.quoteMint)
     };
     if (!poolOrder) {
       throw new Error(`Raydium pool token order not found for ${tokenPair}`);
