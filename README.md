@@ -21,4 +21,5 @@ npm run dev
 - [ ] Extend support for even more token pairs
 - [ ] Integrate additional liquidity pools (e.g., Meteora, Lifinity, etc.)
 - [ ] Visualize different types of Raydium pools (e.g., V4, AMM, Concentrated Liquidity, CPMM) in separate charts
-- [ ] Add a button to trigger automatic arbitrage execution
+- [ ] ⚠️ Implement automatic arbitrage execution (`runArbitrageBot` in `App.tsx`)
+

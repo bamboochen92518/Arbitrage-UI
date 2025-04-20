@@ -26,32 +26,47 @@ function App() {
   const [orcaLoading, setOrcaLoading] = useState(true);
   const [orcaError, setOrcaError] = useState<string | null>(null);
 
+  // Auto arbitrage bot state (inactive by default)
+  const [isBotActive, setIsBotActive] = useState(false);
+
+  // Placeholder function for arbitrage bot logic
+  const runArbitrageBot = () => {
+    if (!isBotActive) return;
+
+    console.log(`Arbitrage Bot Running for ${selectedPair}`);
+    console.log(`Raydium Price: ${raydiumPrice ?? 'N/A'}`);
+    console.log(`Orca Price: ${orcaPrice ?? 'N/A'}`);
+    // TODO: Add arbitrage logic here, e.g., compare prices and execute trades
+  };
+
+  // Effect for resetting and fetching prices when selectedPair changes
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
 
     const fetchPrices = async () => {
-      // Reset states when fetching new pair
-
-
-      await Promise.all([
-        fetchRaydiumPrice(
-          selectedPair,
-          setRaydiumPrice,
-          setRaydiumPriceHistory,
-          setRaydiumLoading,
-          setRaydiumError
-        ),
-        fetchOrcaPrice(
-          selectedPair,
-          setOrcaPrice,
-          setOrcaPriceHistory,
-          setOrcaLoading,
-          setOrcaError
-        ),
-      ]);
+      try {
+        await Promise.all([
+          fetchRaydiumPrice(
+            selectedPair,
+            setRaydiumPrice,
+            setRaydiumPriceHistory,
+            setRaydiumLoading,
+            setRaydiumError
+          ),
+          fetchOrcaPrice(
+            selectedPair,
+            setOrcaPrice,
+            setOrcaPriceHistory,
+            setOrcaLoading,
+            setOrcaError
+          ),
+        ]);
+      } catch (error) {
+        console.error('Error fetching prices:', error);
+      }
     };
 
-    // Reset history only when selectedPair changes
+    // Reset history, prices, and bot state when selectedPair changes
     setRaydiumLoading(true);
     setOrcaLoading(true);
     setRaydiumPrice(null);
@@ -60,6 +75,7 @@ function App() {
     setOrcaError(null);
     setRaydiumPriceHistory([]);
     setOrcaPriceHistory([]);
+    setIsBotActive(false); // Reset bot to inactive on token pair switch
 
     fetchPrices();
     intervalId = setInterval(fetchPrices, 1000);
@@ -67,10 +83,25 @@ function App() {
     return () => clearInterval(intervalId);
   }, [selectedPair]);
 
+  // Effect for running arbitrage bot when isBotActive or prices change
+  useEffect(() => {
+    if (!isBotActive) return;
+
+    runArbitrageBot(); // Run immediately when bot is activated
+    const intervalId = setInterval(runArbitrageBot, 1000); // Run every second if active
+
+    return () => clearInterval(intervalId);
+  }, [isBotActive, raydiumPrice, orcaPrice, selectedPair]);
+
+  // Debug state changes
+  useEffect(() => {
+    console.log(`isBotActive changed to: ${isBotActive}`);
+  }, [isBotActive]);
+
   return (
     <div className="container">
       <div className="title">
-      <h1>{selectedPair}</h1> {/* Display selected pair */}
+        <h1>{selectedPair}</h1>
       </div>
       <div className="token-pair-selector">
         {TOKEN_PAIRS.map((pair) => (
@@ -83,20 +114,28 @@ function App() {
           </button>
         ))}
       </div>
+      {/* Auto Arbitrage Bot Button */}
+      <button
+        className={`arbitrage-bot-button ${isBotActive ? 'active' : 'inactive'}`}
+        onClick={() => setIsBotActive(!isBotActive)}
+        style={{ marginLeft: 'auto' }}
+      >
+        Bot: {isBotActive ? 'Active' : 'Inactive'}
+      </button>
       <div className="row">
-      <RaydiumChart
+        <RaydiumChart
           price={raydiumPrice}
           priceHistory={raydiumPriceHistory}
           loading={raydiumLoading}
           error={raydiumError}
-          tokenPair={selectedPair} // Pass selectedPair as tokenPair
+          tokenPair={selectedPair}
         />
         <OrcaChart
           price={orcaPrice}
           priceHistory={orcaPriceHistory}
           loading={orcaLoading}
           error={orcaError}
-          tokenPair={selectedPair} // Pass selectedPair as tokenPair (if OrcaChart is updated)
+          tokenPair={selectedPair}
         />
       </div>
       <div className="row">
