@@ -119,3 +119,26 @@ export const ORCA_POOL_SCHEMA = {
     rewardLastUpdatedTimestamp: { array: { type: 'u8', len: 8 } },
   },
 };
+
+export const SOLEND_RESERVE_SCHEMA = {
+  struct: {
+    version: 'u8',
+    lastUpdate: {
+      struct: {
+        slot: 'u64',
+        stale: 'u8',
+      },
+    },
+    lendingMarket: { array: { type: 'u8', len: 32 } },
+    liquidity: {
+      struct: {
+        mintPubkey: { array: { type: 'u8', len: 32 } },
+        supplyVault: { array: { type: 'u8', len: 32 } },
+        feeVault: { array: { type: 'u8', len: 32 } },
+        availableAmount: 'u64', // Available liquidity in lamports
+        // Other fields omitted for simplicity
+      },
+    },
+    // Additional fields like collateral, config, etc., omitted
+  },
+};

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import RaydiumChart from './components/RaydiumChart';
 import OrcaChart from './components/OrcaChart';
 import PlaceholderChart from './components/PlaceholderChart';
-import { fetchRaydiumPrice, fetchOrcaPrice } from './utils/solana';
+import { fetchRaydiumPrice, fetchOrcaPrice , checkArbitrageProfitability } from './utils/solana';
 import { PricePoint } from './types';
 import './App.css';
 
@@ -30,13 +30,30 @@ function App() {
   const [isBotActive, setIsBotActive] = useState(false);
 
   // Placeholder function for arbitrage bot logic
-  const runArbitrageBot = () => {
+  const runArbitrageBot = async () => {
     if (!isBotActive) return;
 
     console.log(`Arbitrage Bot Running for ${selectedPair}`);
     console.log(`Raydium Price: ${raydiumPrice ?? 'N/A'}`);
     console.log(`Orca Price: ${orcaPrice ?? 'N/A'}`);
-    // TODO: Add arbitrage logic here, e.g., compare prices and execute trades
+
+    if (raydiumPrice && orcaPrice) {
+      const { isProfitable, profit, buyMarket, sellMarket, loanAmount } = await checkArbitrageProfitability(
+        selectedPair,
+        raydiumPrice,
+        orcaPrice
+      );
+
+      if (isProfitable) {
+        console.log(
+          `Profitable arbitrage opportunity! Buy on ${buyMarket}, sell on ${sellMarket}. ` +
+          `Loan amount: ${loanAmount} SOL, Estimated profit: ${profit.toFixed(6)} tokens`
+        );
+        // TODO: Implement flash loan with Flash Loan Mastery, buy on cheaper market, sell on higher market
+      } else {
+        console.log(`No profitable arbitrage opportunity. Loan amount: ${loanAmount} SOL`);
+      }
+    }
   };
 
   // Effect for resetting and fetching prices when selectedPair changes
@@ -78,7 +95,7 @@ function App() {
     setIsBotActive(false); // Reset bot to inactive on token pair switch
 
     fetchPrices();
-    intervalId = setInterval(fetchPrices, 1000);
+    intervalId = setInterval(fetchPrices, 5000);
 
     return () => clearInterval(intervalId);
   }, [selectedPair]);
@@ -88,7 +105,7 @@ function App() {
     if (!isBotActive) return;
 
     runArbitrageBot(); // Run immediately when bot is activated
-    const intervalId = setInterval(runArbitrageBot, 1000); // Run every second if active
+    const intervalId = setInterval(runArbitrageBot, 5000); // Run every second if active
 
     return () => clearInterval(intervalId);
   }, [isBotActive, raydiumPrice, orcaPrice, selectedPair]);
@@ -120,7 +137,7 @@ function App() {
         onClick={() => setIsBotActive(!isBotActive)}
         style={{ marginLeft: 'auto' }}
       >
-        Bot: {isBotActive ? 'Active' : 'Inactive'}
+        Arbitrage Bot: {isBotActive ? 'Active' : 'Inactive'}
       </button>
       <div className="row">
         <RaydiumChart
