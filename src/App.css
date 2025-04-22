@@ -139,6 +139,63 @@ canvas {
   left: 100%;
 }
 
+/* Network switch button */
+.network-switch-button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.network-switch-button.inactive {
+  background: linear-gradient(to right, #f97316, #c2410c); /* Orange for devnet */
+  color: white;
+}
+
+.network-switch-button.active {
+  background: linear-gradient(to right, #3b82f6, #1e40af); /* Blue for mainnet */
+  color: white;
+}
+
+.network-switch-button:hover {
+  transform: scale(1.05);
+}
+
+.network-switch-button.inactive:hover {
+  box-shadow: 0 0 15px rgba(249, 115, 22, 0.7); /* Orange glow for devnet */
+}
+
+.network-switch-button.active:hover {
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.7); /* Blue glow for mainnet */
+}
+
+/* Shine effect on hover for network switch button */
+.network-switch-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.network-switch-button:hover::before {
+  left: 100%;
+}
+
 /* New styles for token pair selector */
 .token-pair-selector {
   display: flex;

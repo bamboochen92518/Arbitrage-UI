@@ -27,7 +27,8 @@ interface RaydiumChartProps {
   priceHistory: PricePoint[];
   loading: boolean;
   error: string | null;
-  tokenPair: string; // New prop for token pair
+  tokenPair: string;
+  network: 'mainnet' | 'devnet';
 }
 
 const RaydiumChart: React.FC<RaydiumChartProps> = ({
@@ -44,7 +45,7 @@ const RaydiumChart: React.FC<RaydiumChartProps> = ({
     labels: priceHistory.map((point) => point.timestamp),
     datasets: [
       {
-        label: `${baseToken}/${quoteToken} Price`, // Dynamic label
+        label: `${baseToken}/${quoteToken} Price`,
         data: priceHistory.map((point) => point.price),
         borderColor: 'rgba(75, 192, 192, 1)',
         backgroundColor: 'rgba(75, 192, 192, 0.2)',
@@ -62,7 +63,7 @@ const RaydiumChart: React.FC<RaydiumChartProps> = ({
       },
       title: {
         display: true,
-        text: `${baseToken}/${quoteToken} Price Over Time`, // Dynamic title
+        text: `${baseToken}/${quoteToken} Price Over Time`,
       },
     },
     scales: {
@@ -75,7 +76,7 @@ const RaydiumChart: React.FC<RaydiumChartProps> = ({
       y: {
         title: {
           display: true,
-          text: `Price (${quoteToken})`, // Dynamic y-axis title
+          text: `Price (${quoteToken})`,
         },
       },
     },
@@ -86,9 +87,12 @@ const RaydiumChart: React.FC<RaydiumChartProps> = ({
       <p>Raydium</p>
       {loading && <p>Loading...</p>}
       {error && <p>{error}</p>}
-      {price && (
+      {!loading && !error && price === null && (
+        <p>The pool is not ready</p>
+      )}
+      {!loading && !error && price !== null && (
         <div className="table-section">
-          <p className="price">1 {baseToken} = {price.toFixed(6)} {quoteToken}</p> {/* Dynamic price text */}
+          <p className="price">1 {baseToken} = {price.toFixed(6)} {quoteToken}</p>
           <Line data={chartData} options={chartOptions} />
         </div>
       )}

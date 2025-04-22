@@ -1,36 +1,64 @@
 import { PublicKey } from '@solana/web3.js';
 
-// Raydium pool IDs (Raydium Liquidity Pool V4)
-// https://solscan.io/amm/raydium?program_id=675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8&sortBy=total_volume_1_24h#markets
-export const RAYDIUM_POOL_IDS = {
-  'SOL/USDC': new PublicKey('58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2'), // Example SOL/USDC pool ID
-  'POPCAT/SOL': new PublicKey('FRhB8L7Y9Qq41qZXYLtC2nw8An1RJfLLxRF2x9RwLLMo'),
-  'FARTCOIN/SOL': new PublicKey('Bzc9NZfMqkXR6fz1DBph7BDf9BroyEf6pnzESP7v5iiw'),
-  'JTO/SOL': new PublicKey('EzLBvtY6gwdz5BGJnKDZGgYrMzm1PLKcxdViqRx5fSL1'),
-  'TRUMP/SOL': new PublicKey('uCk125EJf7iCjz43aSdzuyMAT5eii6c5zKVxEnGnosa'),
+// Network-specific constants
+export const CONSTANTS = {
+  mainnet: {
+    RAYDIUM_POOL_IDS: {
+      'SOL/USDC': new PublicKey('58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2'),
+      'POPCAT/SOL': new PublicKey('FRhB8L7Y9Qq41qZXYLtC2nw8An1RJfLLxRF2x9RwLLMo'),
+      'FARTCOIN/SOL': new PublicKey('Bzc9NZfMqkXR6fz1DBph7BDf9BroyEf6pnzESP7v5iiw'),
+      'JTO/SOL': new PublicKey('EzLBvtY6gwdz5BGJnKDZGgYrMzm1PLKcxdViqRx5fSL1'),
+      'TRUMP/SOL': new PublicKey('uCk125EJf7iCjz43aSdzuyMAT5eii6c5zKVxEnGnosa'),
+    },
+    ORCA_POOL_IDS: {
+      'SOL/USDC': new PublicKey('FpCMFDFGYotvufJ7HrFHsWEiiQCGbkLCtwHiDnh7o28Q'),
+      'POPCAT/SOL': new PublicKey('AHTTzwf3GmVMJdxWM8v2MSxyjZj8rQR6hyAC3g9477Yj'),
+      'FARTCOIN/SOL': new PublicKey('C9U2Ksk6KKWvLEeo5yUQ7Xu46X7NzeBJtd9PBfuXaUSM'),
+      'JTO/SOL': new PublicKey('2UhFnySoJi6c89aydGAGS7ZRemo2dbkFRhvSJqDX4gHJ'),
+      'TRUMP/SOL': new PublicKey('6KX9iiLFBcwfjq3uMqeeMukaMZt5rQYTsbZZTnxbzsz6'),
+    },
+    TOKEN_MINTS: {
+      'SOL': new PublicKey('So11111111111111111111111111111111111111112'),
+      'USDC': new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'),
+      'POPCAT': new PublicKey('7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr'),
+      'FARTCOIN': new PublicKey('9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump'),
+      'JTO': new PublicKey('jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL'),
+      'TRUMP': new PublicKey('6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN'),
+    },
+    SOLEND_RESERVE: {
+      'SOL': new PublicKey('FcMXW4jYR2SPDGhkSQ8zYTqWdYXMQR3yqyMLpEbt1wrs'), // Mainnet SOL reserve
+    },
+  },
+  devnet: {
+    RAYDIUM_POOL_IDS: {
+      'SOL/USDC': null, // Placeholder: Replace with devnet SOL/USDC pool ID
+      'POPCAT/SOL': null, // Placeholder: Replace or keep null if unavailable
+      'FARTCOIN/SOL': null, // Placeholder: Replace or keep null if unavailable
+      'JTO/SOL': null, // Placeholder: Replace or keep null if unavailable
+      'TRUMP/SOL': null, // Placeholder: Replace or keep null if unavailable
+    },
+    ORCA_POOL_IDS: {
+      'SOL/USDC': null, // Placeholder: Replace with devnet SOL/USDC pool ID
+      'POPCAT/SOL': null, // Placeholder: Replace or keep null if unavailable
+      'FARTCOIN/SOL': null, // Placeholder: Replace or keep null if unavailable
+      'JTO/SOL': null, // Placeholder: Replace or keep null if unavailable
+      'TRUMP/SOL': null, // Placeholder: Replace or keep null if unavailable
+    },
+    TOKEN_MINTS: {
+      'SOL': new PublicKey('So11111111111111111111111111111111111111112'), // Devnet SOL mint
+      'USDC': new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'), // Devnet USDC mint
+      'POPCAT': null, // Placeholder: Replace or keep null if unavailable
+      'FARTCOIN': null, // Placeholder: Replace or keep null if unavailable
+      'JTO': null, // Placeholder: Replace or keep null if unavailable
+      'TRUMP': null, // Placeholder: Replace or keep null if unavailable
+    },
+    SOLEND_RESERVE: {
+      'SOL': null, // Solend is not available on devnet
+    },
+  },
 };
 
-// Orca pool IDs
-// https://www.orca.so/pools
-export const ORCA_POOL_IDS = {
-  'SOL/USDC': new PublicKey('FpCMFDFGYotvufJ7HrFHsWEiiQCGbkLCtwHiDnh7o28Q'), // Example SOL/USDC pool ID
-  'POPCAT/SOL': new PublicKey('AHTTzwf3GmVMJdxWM8v2MSxyjZj8rQR6hyAC3g9477Yj'),
-  'FARTCOIN/SOL': new PublicKey('C9U2Ksk6KKWvLEeo5yUQ7Xu46X7NzeBJtd9PBfuXaUSM'),
-  'JTO/SOL': new PublicKey('2UhFnySoJi6c89aydGAGS7ZRemo2dbkFRhvSJqDX4gHJ'),
-  'TRUMP/SOL': new PublicKey('6KX9iiLFBcwfjq3uMqeeMukaMZt5rQYTsbZZTnxbzsz6'),
-};
-
-// Token mints for verification
-export const TOKEN_MINTS = {
-  'SOL': new PublicKey('So11111111111111111111111111111111111111112'), // SOL mint
-  'USDC': new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'), // USDC mint
-  'POPCAT': new PublicKey('7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr'),
-  'FARTCOIN': new PublicKey('9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump'),
-  'JTO': new PublicKey('jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL'),
-  'TRUMP': new PublicKey('6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN'),
-};
-
-// Token decimals (for Orca price adjustments)
+// Token decimals (same for both networks)
 export const TOKEN_DECIMALS = {
   'SOL': 9,
   'USDC': 6,
@@ -40,6 +68,7 @@ export const TOKEN_DECIMALS = {
   'TRUMP': 6,
 };
 
+// Raydium pool schema (same for both networks)
 export const RAYDIUM_POOL_SCHEMA = {
   struct: {
     status: 'u64',
@@ -97,6 +126,7 @@ export const RAYDIUM_POOL_SCHEMA = {
   },
 };
 
+// Orca pool schema (same for both networks)
 export const ORCA_POOL_SCHEMA = {
   struct: {
     whirlpoolsConfig: { array: { type: 'u8', len: 32 } },
@@ -120,6 +150,7 @@ export const ORCA_POOL_SCHEMA = {
   },
 };
 
+// Solend reserve schema (same for both networks, if applicable)
 export const SOLEND_RESERVE_SCHEMA = {
   struct: {
     version: 'u8',

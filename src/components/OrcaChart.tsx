@@ -27,6 +27,7 @@ interface OrcaChartProps {
   loading: boolean;
   error: string | null;
   tokenPair: string;
+  network: 'mainnet' | 'devnet';
 }
 
 const OrcaChart: React.FC<OrcaChartProps> = ({
@@ -84,7 +85,10 @@ const OrcaChart: React.FC<OrcaChartProps> = ({
       <p>Orca</p>
       {loading && <p>Loading...</p>}
       {error && <p>{error}</p>}
-      {price && (
+      {!loading && !error && price === null && (
+        <p>The pool is not ready</p>
+      )}
+      {!loading && !error && price !== null && (
         <div className="table-section">
           <p style={{ textAlign: 'center' }}>
             1 {baseToken} = {price.toFixed(6)} {quoteToken}

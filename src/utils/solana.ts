@@ -1,13 +1,21 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import * as borsh from 'borsh';
-import { RAYDIUM_POOL_IDS, ORCA_POOL_IDS, TOKEN_DECIMALS, RAYDIUM_POOL_SCHEMA, ORCA_POOL_SCHEMA, TOKEN_MINTS, SOLEND_RESERVE_SCHEMA } from '../constants';
+import { CONSTANTS, TOKEN_DECIMALS, RAYDIUM_POOL_SCHEMA, ORCA_POOL_SCHEMA, SOLEND_RESERVE_SCHEMA } from '../constants';
 import { PricePoint } from '../types';
 
+// Helper function to get RPC endpoint based on network
+const getRpcEndpoint = (network: 'mainnet' | 'devnet'): string => {
+  return network === 'mainnet'
+    ? 'https://solana-mainnet.core.chainstack.com/27098d57fcb5334739b6917c275dba1c'
+    : 'https://api.devnet.solana.com';
+};
+
 // Helper function to map token mint (Uint8Array) to token name
-const getTokenName = (mint: Uint8Array): string | null => {
+const getTokenName = (mint: Uint8Array, network: 'mainnet' | 'devnet'): string | null => {
   const mintPublicKey = new PublicKey(mint);
-  for (const [tokenName, tokenMint] of Object.entries(TOKEN_MINTS)) {
-    if (tokenMint.equals(mintPublicKey)) {
+  const tokenMints = CONSTANTS[network].TOKEN_MINTS;
+  for (const [tokenName, tokenMint] of Object.entries(tokenMints)) {
+    if (tokenMint && tokenMint.equals(mintPublicKey)) {
       return tokenName;
     }
   }
@@ -16,21 +24,26 @@ const getTokenName = (mint: Uint8Array): string | null => {
 
 export const fetchRaydiumPrice = async (
   tokenPair: string,
+  network: 'mainnet' | 'devnet',
   setPrice: (price: number | null) => void,
   setPriceHistory: (history: (prev: PricePoint[]) => PricePoint[]) => void,
   setLoading: (loading: boolean) => void,
   setError: (error: string | null) => void
 ) => {
   try {
-    const connection = new Connection('https://solana-mainnet.core.chainstack.com/27098d57fcb5334739b6917c275dba1c', 'confirmed');
-    const poolId = RAYDIUM_POOL_IDS[tokenPair as keyof typeof RAYDIUM_POOL_IDS];
+    const poolId = CONSTANTS[network].RAYDIUM_POOL_IDS[tokenPair as keyof typeof CONSTANTS.mainnet.RAYDIUM_POOL_IDS];
     if (!poolId) {
-      throw new Error(`Raydium pool ID not found for ${tokenPair}`);
+      setPrice(null);
+      setPriceHistory((prev) => prev);
+      setError(null);
+      setLoading(false);
+      return null; // No pool available
     }
 
+    const connection = new Connection(getRpcEndpoint(network), 'confirmed');
     const poolInfo = await connection.getAccountInfo(poolId);
     if (!poolInfo) {
-      throw new Error(`Raydium pool not found for ${tokenPair}`);
+      throw new Error(`Raydium pool not found for ${tokenPair} on ${network}`);
     }
 
     const poolData = poolInfo.data;
@@ -53,16 +66,16 @@ export const fetchRaydiumPrice = async (
     const quoteAmount = quoteVaultBalance.value.uiAmount;
 
     if (baseAmount === 0) {
-      throw new Error(`Raydium base amount is zero for ${tokenPair}`);
+      throw new Error(`Raydium base amount is zero for ${tokenPair} on ${network}`);
     }
 
     // Get pool token order
     const poolOrder = {
-      'base': getTokenName(poolState.baseMint), 
-      'quote': getTokenName(poolState.quoteMint)
+      base: getTokenName(poolState.baseMint, network),
+      quote: getTokenName(poolState.quoteMint, network),
     };
-    if (!poolOrder) {
-      throw new Error(`Raydium pool token order not found for ${tokenPair}`);
+    if (!poolOrder.base || !poolOrder.quote) {
+      throw new Error(`Raydium pool token order not found for ${tokenPair} on ${network}`);
     }
 
     // Calculate price (quote/base)
@@ -86,9 +99,9 @@ export const fetchRaydiumPrice = async (
     setLoading(false);
     return poolState; // Return pool state for use in arbitrage check
   } catch (err: any) {
-    const errorMessage = err.message || `Failed to fetch Raydium price data for ${tokenPair}`;
+    const errorMessage = err.message || `Failed to fetch Raydium price data for ${tokenPair} on ${network}`;
     setError(errorMessage);
-    console.error(`Raydium error for ${tokenPair}:`, err);
+    console.error(`Raydium error for ${tokenPair} on ${network}:`, err);
     setLoading(false);
     return null;
   }
@@ -96,24 +109,26 @@ export const fetchRaydiumPrice = async (
 
 export const fetchOrcaPrice = async (
   tokenPair: string,
+  network: 'mainnet' | 'devnet',
   setPrice: (price: number | null) => void,
   setPriceHistory: (history: (prev: PricePoint[]) => PricePoint[]) => void,
   setLoading: (loading: boolean) => void,
   setError: (error: string | null) => void
 ) => {
   try {
-    const connection = new Connection(
-      'https://solana-mainnet.core.chainstack.com/27098d57fcb5334739b6917c275dba1c',
-      'confirmed'
-    );
-    const poolId = ORCA_POOL_IDS[tokenPair as keyof typeof ORCA_POOL_IDS];
+    const poolId = CONSTANTS[network].ORCA_POOL_IDS[tokenPair as keyof typeof CONSTANTS.mainnet.ORCA_POOL_IDS];
     if (!poolId) {
-      throw new Error(`Orca pool ID not found for ${tokenPair}`);
+      setPrice(null);
+      setPriceHistory((prev) => prev);
+      setError(null);
+      setLoading(false);
+      return null; // No pool available
     }
 
+    const connection = new Connection(getRpcEndpoint(network), 'confirmed');
     const poolInfo = await connection.getAccountInfo(poolId);
     if (!poolInfo) {
-      throw new Error(`Orca pool not found for ${tokenPair}`);
+      throw new Error(`Orca pool not found for ${tokenPair} on ${network}`);
     }
 
     const poolData = poolInfo.data.slice(8);
@@ -134,21 +149,21 @@ export const fetchOrcaPrice = async (
     // Get pool token order from tokenMintA and tokenMintB
     const [userBase, userQuote] = tokenPair.split('/');
     const poolOrder = {
-      'base': getTokenName(poolState.tokenMintA), 
-      'quote': getTokenName(poolState.tokenMintB)
+      base: getTokenName(poolState.tokenMintA, network),
+      quote: getTokenName(poolState.tokenMintB, network),
     };
 
     // Apply decimal adjustment using individual token decimals
     const decimalsA = TOKEN_DECIMALS[poolOrder.base as keyof typeof TOKEN_DECIMALS];
     const decimalsB = TOKEN_DECIMALS[poolOrder.quote as keyof typeof TOKEN_DECIMALS];
     if (decimalsA === undefined || decimalsB === undefined) {
-      throw new Error(`Decimal configuration not found for ${tokenPair}`);
+      throw new Error(`Decimal configuration not found for ${tokenPair} on ${network}`);
     }
     const power = Math.pow(10, decimalsA - decimalsB);
     let finalPrice = rawPrice * power;
 
     // Verify pool order using token mints
-    if (poolOrder['base'] === userQuote && poolOrder['quote'] === userBase) {
+    if (poolOrder.base === userQuote && poolOrder.quote === userBase) {
       // Pool is quote/base (e.g., USDC/SOL), user wants base/quote (e.g., SOL/USDC)
       finalPrice = 1 / finalPrice; // Invert price
     }
@@ -164,9 +179,9 @@ export const fetchOrcaPrice = async (
     setLoading(false);
     return poolState; // Return pool state for use in arbitrage check
   } catch (err: any) {
-    const errorMessage = err.message || `Failed to fetch Orca price data for ${tokenPair}`;
+    const errorMessage = err.message || `Failed to fetch Orca price data for ${tokenPair} on ${network}`;
     setError(errorMessage);
-    console.error(`Orca error for ${tokenPair}:`, err);
+    console.error(`Orca error for ${tokenPair} on ${network}:`, err);
     setLoading(false);
     return null;
   }
@@ -193,6 +208,7 @@ interface ArbitrageResult {
 
 export async function checkArbitrageProfitability(
   tokenPair: string,
+  network: 'mainnet' | 'devnet',
   raydiumPrice: number,
   orcaPrice: number
 ): Promise<ArbitrageResult> {
@@ -213,6 +229,7 @@ export async function checkArbitrageProfitability(
   await Promise.all([
     fetchRaydiumPrice(
       tokenPair,
+      network,
       () => {}, // No-op for price
       () => (prev: PricePoint[]) => prev, // No-op for history
       () => {}, // No-op for loading
@@ -222,7 +239,7 @@ export async function checkArbitrageProfitability(
       if (poolState) {
         const baseVaultKey = new PublicKey(poolState.baseVault);
         const quoteVaultKey = new PublicKey(poolState.quoteVault);
-        const connection = new Connection('https://solana-mainnet.core.chainstack.com/27098d57fcb5334739b6917c275dba1c', 'confirmed');
+        const connection = new Connection(getRpcEndpoint(network), 'confirmed');
         const [baseVaultBalance, quoteVaultBalance] = await Promise.all([
           connection.getTokenAccountBalance(baseVaultKey),
           connection.getTokenAccountBalance(quoteVaultKey),
@@ -233,6 +250,7 @@ export async function checkArbitrageProfitability(
     }),
     fetchOrcaPrice(
       tokenPair,
+      network,
       () => {},
       () => (prev: PricePoint[]) => prev,
       () => {},
@@ -242,14 +260,14 @@ export async function checkArbitrageProfitability(
       if (poolState) {
         const vaultAKey = new PublicKey(poolState.tokenVaultA);
         const vaultBKey = new PublicKey(poolState.tokenVaultB);
-        const connection = new Connection('https://solana-mainnet.core.chainstack.com/27098d57fcb5334739b6917c275dba1c', 'confirmed');
+        const connection = new Connection(getRpcEndpoint(network), 'confirmed');
         const [vaultABalance, vaultBBalance] = await Promise.all([
           connection.getTokenAccountBalance(vaultAKey),
           connection.getTokenAccountBalance(vaultBKey),
         ]);
         const poolOrder = {
-          base: getTokenName(poolState.tokenMintA),
-          quote: getTokenName(poolState.tokenMintB),
+          base: getTokenName(poolState.tokenMintA, network),
+          quote: getTokenName(poolState.tokenMintB, network),
         };
         const [userBase] = tokenPair.split('/');
         // Assign balances based on pool order
@@ -279,7 +297,7 @@ export async function checkArbitrageProfitability(
   const flashLoanFeeRate = 0.003; // Solend’s 0.3% flash loan fee
 
   // Fetch available loan amount from Solend
-  const loanAmount = await getSolendPoolBalance();
+  const loanAmount = await getSolendPoolBalance(network);
 
   if (loanAmount <= 0) {
     return {
@@ -342,7 +360,7 @@ export async function checkArbitrageProfitability(
 
   // Check if profitable
   const isProfitable = tokenProfit > 0;
-  console.log("Estimate Profit: ", tokenProfit);
+  console.log('Estimate Profit: ', tokenProfit);
 
   return {
     isProfitable,
@@ -358,10 +376,18 @@ export async function checkArbitrageProfitability(
 }
 
 // Fetch available SOL balance in Solend SOL reserve
-async function getSolendPoolBalance(): Promise<number> {
+async function getSolendPoolBalance(network: 'mainnet' | 'devnet'): Promise<number> {
+  if (network === 'devnet') {
+    console.warn('Solend is not available on devnet. Returning 0 for loan amount.');
+    return 0; // Solend is not deployed on devnet
+  }
+
   try {
-    const connection = new Connection('https://solana-mainnet.core.chainstack.com/27098d57fcb5334739b6917c275dba1c', 'confirmed');
-    const reservePda = new PublicKey('FcMXW4jYR2SPDGhkSQ8zYTqWdYXMQR3yqyMLpEbt1wrs'); // Solend SOL reserve
+    const connection = new Connection(getRpcEndpoint(network), 'confirmed');
+    const reservePda = CONSTANTS.mainnet.SOLEND_RESERVE['SOL'];
+    if (!reservePda) {
+      throw new Error('Solend SOL reserve not configured for mainnet');
+    }
     const accountInfo = await connection.getAccountInfo(reservePda);
     if (!accountInfo) {
       throw new Error('Solend SOL reserve not found');
@@ -373,7 +399,7 @@ async function getSolendPoolBalance(): Promise<number> {
     const balance = Number(reserveData.liquidity.availableAmount) / 1_000_000_000;
     return balance;
   } catch (err: any) {
-    console.error('Error fetching Solend pool balance:', err);
+    console.error(`Error fetching Solend pool balance on ${network}:`, err);
     return 0; // Return 0 if fetch fails
   }
 }
