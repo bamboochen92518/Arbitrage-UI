@@ -1,7 +1,14 @@
-import { Connection, PublicKey } from '@solana/web3.js';
+import { Connection, PublicKey, Transaction, TransactionInstruction, Keypair, SystemProgram } from '@solana/web3.js';
 import * as borsh from 'borsh';
-import { RAYDIUM_POOL_IDS, ORCA_POOL_IDS, TOKEN_DECIMALS, RAYDIUM_POOL_SCHEMA, ORCA_POOL_SCHEMA, TOKEN_MINTS, SOLEND_RESERVE_SCHEMA } from '../constants';
+import { RAYDIUM_POOL_IDS, ORCA_POOL_IDS, TOKEN_MINTS, TOKEN_DECIMALS, SOLEND_RESERVE, RAYDIUM_POOL_SCHEMA, ORCA_POOL_SCHEMA, SOLEND_RESERVE_SCHEMA } from '../constants';
 import { PricePoint } from '../types';
+
+// Load RPC node from .env
+const DEFAULT_RPC = 'https://api.mainnet-beta.solana.com';
+const RPC_NODE = import.meta.env.VITE_RPC_NODE || DEFAULT_RPC;
+if (!import.meta.env.VITE_RPC_NODE) {
+  console.warn('VITE_RPC_NODE not found in .env, using public RPC:', DEFAULT_RPC);
+}
 
 // Helper function to map token mint (Uint8Array) to token name
 const getTokenName = (mint: Uint8Array): string | null => {
@@ -22,7 +29,7 @@ export const fetchRaydiumPrice = async (
   setError: (error: string | null) => void
 ) => {
   try {
-    const connection = new Connection('https://solana-mainnet.core.chainstack.com/27098d57fcb5334739b6917c275dba1c', 'confirmed');
+    const connection = new Connection(RPC_NODE, 'confirmed');
     const poolId = RAYDIUM_POOL_IDS[tokenPair as keyof typeof RAYDIUM_POOL_IDS];
     if (!poolId) {
       throw new Error(`Raydium pool ID not found for ${tokenPair}`);
@@ -58,10 +65,10 @@ export const fetchRaydiumPrice = async (
 
     // Get pool token order
     const poolOrder = {
-      'base': getTokenName(poolState.baseMint), 
-      'quote': getTokenName(poolState.quoteMint)
+      base: getTokenName(poolState.baseMint),
+      quote: getTokenName(poolState.quoteMint)
     };
-    if (!poolOrder) {
+    if (!poolOrder.base || !poolOrder.quote) {
       throw new Error(`Raydium pool token order not found for ${tokenPair}`);
     }
 
@@ -102,10 +109,7 @@ export const fetchOrcaPrice = async (
   setError: (error: string | null) => void
 ) => {
   try {
-    const connection = new Connection(
-      'https://solana-mainnet.core.chainstack.com/27098d57fcb5334739b6917c275dba1c',
-      'confirmed'
-    );
+    const connection = new Connection(RPC_NODE, 'confirmed');
     const poolId = ORCA_POOL_IDS[tokenPair as keyof typeof ORCA_POOL_IDS];
     if (!poolId) {
       throw new Error(`Orca pool ID not found for ${tokenPair}`);
@@ -134,8 +138,8 @@ export const fetchOrcaPrice = async (
     // Get pool token order from tokenMintA and tokenMintB
     const [userBase, userQuote] = tokenPair.split('/');
     const poolOrder = {
-      'base': getTokenName(poolState.tokenMintA), 
-      'quote': getTokenName(poolState.tokenMintB)
+      base: getTokenName(poolState.tokenMintA),
+      quote: getTokenName(poolState.tokenMintB)
     };
 
     // Apply decimal adjustment using individual token decimals
@@ -148,7 +152,7 @@ export const fetchOrcaPrice = async (
     let finalPrice = rawPrice * power;
 
     // Verify pool order using token mints
-    if (poolOrder['base'] === userQuote && poolOrder['quote'] === userBase) {
+    if (poolOrder.base === userQuote && poolOrder.quote === userBase) {
       // Pool is quote/base (e.g., USDC/SOL), user wants base/quote (e.g., SOL/USDC)
       finalPrice = 1 / finalPrice; // Invert price
     }
@@ -222,7 +226,7 @@ export async function checkArbitrageProfitability(
       if (poolState) {
         const baseVaultKey = new PublicKey(poolState.baseVault);
         const quoteVaultKey = new PublicKey(poolState.quoteVault);
-        const connection = new Connection('https://solana-mainnet.core.chainstack.com/27098d57fcb5334739b6917c275dba1c', 'confirmed');
+        const connection = new Connection(RPC_NODE, 'confirmed');
         const [baseVaultBalance, quoteVaultBalance] = await Promise.all([
           connection.getTokenAccountBalance(baseVaultKey),
           connection.getTokenAccountBalance(quoteVaultKey),
@@ -242,7 +246,7 @@ export async function checkArbitrageProfitability(
       if (poolState) {
         const vaultAKey = new PublicKey(poolState.tokenVaultA);
         const vaultBKey = new PublicKey(poolState.tokenVaultB);
-        const connection = new Connection('https://solana-mainnet.core.chainstack.com/27098d57fcb5334739b6917c275dba1c', 'confirmed');
+        const connection = new Connection(RPC_NODE, 'confirmed');
         const [vaultABalance, vaultBBalance] = await Promise.all([
           connection.getTokenAccountBalance(vaultAKey),
           connection.getTokenAccountBalance(vaultBKey),
@@ -357,11 +361,201 @@ export async function checkArbitrageProfitability(
   };
 }
 
+export async function executeArbitrageTransaction(
+  tokenPair: string,
+  wallet: Keypair
+): Promise<string | null> {
+  try {
+    const connection = new Connection(RPC_NODE, 'confirmed');
+    const transaction = new Transaction();
+
+    // Step 1: Fetch pool IDs
+    const raydiumPoolId = RAYDIUM_POOL_IDS[tokenPair as keyof typeof RAYDIUM_POOL_IDS];
+    const orcaPoolId = ORCA_POOL_IDS[tokenPair as keyof typeof ORCA_POOL_IDS];
+    if (!raydiumPoolId || !orcaPoolId) {
+      console.error(`Pool IDs not found for ${tokenPair}`);
+      return null;
+    }
+
+    // Step 2: Get Solend reserve
+    const solendReserve = SOLEND_RESERVE['SOL'];
+    const loanAmountLamports = Math.floor((await getSolendPoolBalance()) * 1_000_000_000); // Convert SOL to lamports
+    if (loanAmountLamports <= 0) {
+      console.error('No loan amount available');
+      return null;
+    }
+
+    // Step 3: Fetch pool states
+    const [raydiumPoolInfo, orcaPoolInfo] = await Promise.all([
+      connection.getAccountInfo(raydiumPoolId),
+      connection.getAccountInfo(orcaPoolId),
+    ]);
+
+    if (!raydiumPoolInfo || !orcaPoolInfo) {
+      console.error('Pool info not found');
+      return null;
+    }
+
+    const raydiumPoolState = borsh.deserialize(RAYDIUM_POOL_SCHEMA, raydiumPoolInfo.data) as {
+      baseVault: Uint8Array;
+      quoteVault: Uint8Array;
+      baseMint: Uint8Array;
+      quoteMint: Uint8Array;
+      swapFeeNumerator: bigint;
+      swapFeeDenominator: bigint;
+    };
+
+    const orcaPoolState = borsh.deserialize(ORCA_POOL_SCHEMA, orcaPoolInfo.data.slice(8)) as {
+      sqrtPrice: Uint8Array;
+      tokenVaultA: Uint8Array;
+      tokenVaultB: Uint8Array;
+      tokenMintA: Uint8Array;
+      tokenMintB: Uint8Array;
+      feeRate: number;
+    };
+
+    // Step 4: Calculate prices on-chain
+    const raydiumBaseVault = new PublicKey(raydiumPoolState.baseVault);
+    const raydiumQuoteVault = new PublicKey(raydiumPoolState.quoteVault);
+    const [raydiumBaseBalance, raydiumQuoteBalance] = await Promise.all([
+      connection.getTokenAccountBalance(raydiumBaseVault),
+      connection.getTokenAccountBalance(raydiumQuoteVault),
+    ]);
+
+    const raydiumBaseAmount = raydiumBaseBalance.value.uiAmount || 0;
+    const raydiumQuoteAmount = raydiumQuoteBalance.value.uiAmount || 0;
+    const raydiumPrice = raydiumBaseAmount === 0 ? 0 : raydiumQuoteAmount / raydiumBaseAmount;
+
+    const orcaSqrtPrice = uint8ArrayToBigInt(orcaPoolState.sqrtPrice);
+    const Q64 = BigInt('18446744073709551616');
+    let orcaRawPrice = Math.pow(Number(orcaSqrtPrice) / Number(Q64), 2.0);
+    const orcaPoolOrder = {
+      base: getTokenName(orcaPoolState.tokenMintA),
+      quote: getTokenName(orcaPoolState.tokenMintB),
+    };
+    const decimalsA = TOKEN_DECIMALS[orcaPoolOrder.base as keyof typeof TOKEN_DECIMALS];
+    const decimalsB = TOKEN_DECIMALS[orcaPoolOrder.quote as keyof typeof TOKEN_DECIMALS];
+    const power = Math.pow(10, decimalsA - decimalsB);
+    let orcaPrice = orcaRawPrice * power;
+    const [userBase, userQuote] = tokenPair.split('/');
+    if (orcaPoolOrder.base === userQuote && orcaPoolOrder.quote === userBase) {
+      orcaPrice = 1 / orcaPrice;
+    }
+
+    // Step 5: Determine arbitrage direction
+    const buyMarket = raydiumPrice < orcaPrice ? 'Raydium' : 'Orca';
+    const sellMarket = buyMarket === 'Raydium' ? 'Orca' : 'Raydium';
+
+    // Step 6: Flash loan instruction (placeholder)
+    const solendProgramId = new PublicKey('So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo');
+    const flashLoanInstruction = new TransactionInstruction({
+      programId: solendProgramId,
+      keys: [
+        { pubkey: solendReserve, isSigner: false, isWritable: true },
+        { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+      ],
+      data: Buffer.from([/* Flash loan borrow instruction, amount: loanAmountLamports */]),
+    });
+    transaction.add(flashLoanInstruction);
+
+    // Step 7: Swap instructions (placeholders)
+    const raydiumProgramId = new PublicKey('675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8');
+    const orcaProgramId = new PublicKey('9W959DqEETiGZocYWCQPaJ6sBmUzgfxXfqGeTEdp3aQP');
+    if (buyMarket === 'Raydium') {
+      transaction.add(
+        new TransactionInstruction({
+          programId: raydiumProgramId,
+          keys: [
+            { pubkey: raydiumPoolId, isSigner: false, isWritable: true },
+            { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+            { pubkey: raydiumBaseVault, isSigner: false, isWritable: true },
+            { pubkey: raydiumQuoteVault, isSigner: false, isWritable: true },
+          ],
+          data: Buffer.from([/* Raydium swap instruction */]),
+        })
+      );
+      transaction.add(
+        new TransactionInstruction({
+          programId: orcaProgramId,
+          keys: [
+            { pubkey: orcaPoolId, isSigner: false, isWritable: true },
+            { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+            { pubkey: new PublicKey(orcaPoolState.tokenVaultA), isSigner: false, isWritable: true },
+            { pubkey: new PublicKey(orcaPoolState.tokenVaultB), isSigner: false, isWritable: true },
+          ],
+          data: Buffer.from([/* Orca swap instruction */]),
+        })
+      );
+    } else {
+      transaction.add(
+        new TransactionInstruction({
+          programId: orcaProgramId,
+          keys: [
+            { pubkey: orcaPoolId, isSigner: false, isWritable: true },
+            { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+            { pubkey: new PublicKey(orcaPoolState.tokenVaultA), isSigner: false, isWritable: true },
+            { pubkey: new PublicKey(orcaPoolState.tokenVaultB), isSigner: false, isWritable: true },
+          ],
+          data: Buffer.from([/* Orca swap instruction */]),
+        })
+      );
+      transaction.add(
+        new TransactionInstruction({
+          programId: raydiumProgramId,
+          keys: [
+            { pubkey: raydiumPoolId, isSigner: false, isWritable: true },
+            { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+            { pubkey: raydiumBaseVault, isSigner: false, isWritable: true },
+            { pubkey: raydiumQuoteVault, isSigner: false, isWritable: true },
+          ],
+          data: Buffer.from([/* Raydium swap instruction */]),
+        })
+      );
+    }
+
+    // Step 8: Repay flash loan (placeholder)
+    transaction.add(
+      new TransactionInstruction({
+        programId: solendProgramId,
+        keys: [
+          { pubkey: solendReserve, isSigner: false, isWritable: true },
+          { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+        ],
+        data: Buffer.from([/* Flash loan repay instruction */]),
+      })
+    );
+
+    // Step 9: Add priority fee to reduce front-running
+    transaction.add(
+      SystemProgram.transfer({
+        fromPubkey: wallet.publicKey,
+        toPubkey: wallet.publicKey,
+        lamports: 1000000, // 0.001 SOL priority fee
+      })
+    );
+
+    // Step 10: Sign and send transaction
+    const { blockhash } = await connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = wallet.publicKey;
+    transaction.sign(wallet);
+
+    const signature = await connection.sendRawTransaction(transaction.serialize());
+    await connection.confirmTransaction(signature, 'confirmed');
+
+    console.log(`Arbitrage transaction executed: ${signature}`);
+    return signature;
+  } catch (err: any) {
+    console.error(`Arbitrage transaction failed for ${tokenPair}:`, err);
+    return null;
+  }
+}
+
 // Fetch available SOL balance in Solend SOL reserve
 async function getSolendPoolBalance(): Promise<number> {
   try {
-    const connection = new Connection('https://solana-mainnet.core.chainstack.com/27098d57fcb5334739b6917c275dba1c', 'confirmed');
-    const reservePda = new PublicKey('FcMXW4jYR2SPDGhkSQ8zYTqWdYXMQR3yqyMLpEbt1wrs'); // Solend SOL reserve
+    const connection = new Connection(RPC_NODE, 'confirmed');
+    const reservePda = SOLEND_RESERVE['SOL']; // Uses FcMXW4jYR2SPDGhkSQ8zYTqWdYXMQR3yqyMLpEbt1wrs from constants.ts
     const accountInfo = await connection.getAccountInfo(reservePda);
     if (!accountInfo) {
       throw new Error('Solend SOL reserve not found');

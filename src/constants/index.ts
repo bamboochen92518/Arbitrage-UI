@@ -40,6 +40,11 @@ export const TOKEN_DECIMALS = {
   'TRUMP': 6,
 };
 
+// Solend reserve for SOL
+export const SOLEND_RESERVE = {
+  'SOL': new PublicKey('FcMXW4jYR2SPDGhkSQ8zYTqWdYXMQR3yqyMLpEbt1wrs'), // Valid Solend SOL reserve
+};
+
 export const RAYDIUM_POOL_SCHEMA = {
   struct: {
     status: 'u64',

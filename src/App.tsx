@@ -1,62 +1,60 @@
 import { useState, useEffect } from 'react';
+import { Keypair } from '@solana/web3.js';
+import bs58 from 'bs58';
 import RaydiumChart from './components/RaydiumChart';
 import OrcaChart from './components/OrcaChart';
 import PlaceholderChart from './components/PlaceholderChart';
-import { fetchRaydiumPrice, fetchOrcaPrice , checkArbitrageProfitability } from './utils/solana';
+import { fetchRaydiumPrice, fetchOrcaPrice, checkArbitrageProfitability, executeArbitrageTransaction } from './utils/solana';
+import { TOKEN_MINTS } from './constants';
 import { PricePoint } from './types';
 import './App.css';
 
-// Define available token pairs
-const TOKEN_PAIRS = ['SOL/USDC', 'POPCAT/SOL', 'FARTCOIN/SOL', 'JTO/SOL', 'TRUMP/SOL'] as const;
-type TokenPair = (typeof TOKEN_PAIRS)[number];
+// Validate RPC node
+const DEFAULT_RPC = 'https://api.mainnet-beta.solana.com';
+const RPC_NODE = import.meta.env.VITE_RPC_NODE || DEFAULT_RPC;
+if (!import.meta.env.VITE_RPC_NODE) {
+  console.warn('VITE_RPC_NODE not found in .env, using public RPC:', DEFAULT_RPC);
+}
+
+// Load wallet from .env
+let wallet: Keypair | null = null;
+try {
+  const secretKeyString = import.meta.env.VITE_WALLET_SECRET_KEY;
+  if (!secretKeyString) {
+    throw new Error('VITE_WALLET_SECRET_KEY not found in .env');
+  }
+  let secretKey: Uint8Array;
+  if (secretKeyString.startsWith('[')) {
+    // JSON array format
+    secretKey = Uint8Array.from(JSON.parse(secretKeyString));
+  } else {
+    // Base58 format
+    secretKey = bs58.decode(secretKeyString);
+  }
+  wallet = Keypair.fromSecretKey(secretKey);
+  console.log('Wallet loaded:', wallet.publicKey.toBase58());
+} catch (err) {
+  console.error('Failed to load wallet from .env:', err);
+}
+
+// Define token names and pairs
+type TokenName = keyof typeof TOKEN_MINTS;
+const ALL_TOKEN_PAIRS = ['SOL/USDC', 'POPCAT/SOL', 'FARTCOIN/SOL', 'JTO/SOL', 'TRUMP/SOL'] as const;
+type TokenPair = (typeof ALL_TOKEN_PAIRS)[number];
 
 function App() {
-  // State for selected token pair
   const [selectedPair, setSelectedPair] = useState<TokenPair>('SOL/USDC');
-
-  // Raydium state
   const [raydiumPrice, setRaydiumPrice] = useState<number | null>(null);
   const [raydiumPriceHistory, setRaydiumPriceHistory] = useState<PricePoint[]>([]);
   const [raydiumLoading, setRaydiumLoading] = useState(true);
   const [raydiumError, setRaydiumError] = useState<string | null>(null);
-
-  // Orca state
   const [orcaPrice, setOrcaPrice] = useState<number | null>(null);
   const [orcaPriceHistory, setOrcaPriceHistory] = useState<PricePoint[]>([]);
   const [orcaLoading, setOrcaLoading] = useState(true);
   const [orcaError, setOrcaError] = useState<string | null>(null);
-
-  // Auto arbitrage bot state (inactive by default)
   const [isBotActive, setIsBotActive] = useState(false);
 
-  // Placeholder function for arbitrage bot logic
-  const runArbitrageBot = async () => {
-    if (!isBotActive) return;
-
-    console.log(`Arbitrage Bot Running for ${selectedPair}`);
-    console.log(`Raydium Price: ${raydiumPrice ?? 'N/A'}`);
-    console.log(`Orca Price: ${orcaPrice ?? 'N/A'}`);
-
-    if (raydiumPrice && orcaPrice) {
-      const { isProfitable, profit, buyMarket, sellMarket, loanAmount } = await checkArbitrageProfitability(
-        selectedPair,
-        raydiumPrice,
-        orcaPrice
-      );
-
-      if (isProfitable) {
-        console.log(
-          `Profitable arbitrage opportunity! Buy on ${buyMarket}, sell on ${sellMarket}. ` +
-          `Loan amount: ${loanAmount} SOL, Estimated profit: ${profit.toFixed(6)} tokens`
-        );
-        // TODO: Implement flash loan with Flash Loan Mastery, buy on cheaper market, sell on higher market
-      } else {
-        console.log(`No profitable arbitrage opportunity. Loan amount: ${loanAmount} SOL`);
-      }
-    }
-  };
-
-  // Effect for resetting and fetching prices when selectedPair changes
+  // Fetch prices on pair change
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
 
@@ -83,7 +81,6 @@ function App() {
       }
     };
 
-    // Reset history, prices, and bot state when selectedPair changes
     setRaydiumLoading(true);
     setOrcaLoading(true);
     setRaydiumPrice(null);
@@ -92,7 +89,7 @@ function App() {
     setOrcaError(null);
     setRaydiumPriceHistory([]);
     setOrcaPriceHistory([]);
-    setIsBotActive(false); // Reset bot to inactive on token pair switch
+    setIsBotActive(false);
 
     fetchPrices();
     intervalId = setInterval(fetchPrices, 5000);
@@ -100,20 +97,52 @@ function App() {
     return () => clearInterval(intervalId);
   }, [selectedPair]);
 
-  // Effect for running arbitrage bot when isBotActive or prices change
+  // Run arbitrage bot
+  const runArbitrageBot = async () => {
+    if (!isBotActive || !wallet) {
+      if (!wallet) console.error('Arbitrage bot inactive: Wallet not loaded');
+      return;
+    }
+
+    console.log(`Arbitrage Bot Running for ${selectedPair}`);
+    console.log(`Raydium Price: ${raydiumPrice ?? 'N/A'}`);
+    console.log(`Orca Price: ${orcaPrice ?? 'N/A'}`);
+
+    if (raydiumPrice && orcaPrice) {
+      const { isProfitable, profit, buyMarket, sellMarket, loanAmount } = await checkArbitrageProfitability(
+        selectedPair,
+        raydiumPrice,
+        orcaPrice
+      );
+
+      if (isProfitable) {
+        console.log(
+          `Profitable arbitrage opportunity! Buy on ${buyMarket}, sell on ${sellMarket}. ` +
+          `Loan amount: ${loanAmount} SOL, Estimated profit: ${profit.toFixed(6)} tokens`
+        );
+        try {
+          const signature = await executeArbitrageTransaction(selectedPair, wallet);
+          if (signature) {
+            console.log(`Arbitrage executed successfully: ${signature}`);
+          } else {
+            console.error('Arbitrage transaction failed');
+          }
+        } catch (err) {
+          console.error('Error executing arbitrage:', err);
+        }
+      } else {
+        console.log(`No profitable arbitrage opportunity. Loan amount: ${loanAmount} SOL`);
+      }
+    }
+  };
+
   useEffect(() => {
     if (!isBotActive) return;
 
-    runArbitrageBot(); // Run immediately when bot is activated
-    const intervalId = setInterval(runArbitrageBot, 5000); // Run every second if active
-
+    runArbitrageBot();
+    const intervalId = setInterval(runArbitrageBot, 5000);
     return () => clearInterval(intervalId);
   }, [isBotActive, raydiumPrice, orcaPrice, selectedPair]);
-
-  // Debug state changes
-  useEffect(() => {
-    console.log(`isBotActive changed to: ${isBotActive}`);
-  }, [isBotActive]);
 
   return (
     <div className="container">
@@ -121,7 +150,7 @@ function App() {
         <h1>{selectedPair}</h1>
       </div>
       <div className="token-pair-selector">
-        {TOKEN_PAIRS.map((pair) => (
+        {ALL_TOKEN_PAIRS.map((pair) => (
           <button
             key={pair}
             className={`token-pair-button ${selectedPair === pair ? 'active' : ''}`}
@@ -131,14 +160,14 @@ function App() {
           </button>
         ))}
       </div>
-      {/* Auto Arbitrage Bot Button */}
-      <button
-        className={`arbitrage-bot-button ${isBotActive ? 'active' : 'inactive'}`}
-        onClick={() => setIsBotActive(!isBotActive)}
-        style={{ marginLeft: 'auto' }}
-      >
-        Arbitrage Bot: {isBotActive ? 'Active' : 'Inactive'}
-      </button>
+      <div className="button-group" style={{ display: 'flex', marginLeft: 'auto', gap: '10px', alignItems: 'center' }}>
+        <button
+          className={`arbitrage-bot-button ${isBotActive ? 'active' : 'inactive'}`}
+          onClick={() => setIsBotActive(!isBotActive)}
+        >
+          Arbitrage Bot: {isBotActive ? 'Active' : 'Inactive'}
+        </button>
+      </div>
       <div className="row">
         <RaydiumChart
           price={raydiumPrice}
