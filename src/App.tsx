@@ -4,6 +4,7 @@ import bs58 from 'bs58';
 import RaydiumChart from './components/RaydiumChart';
 import OrcaChart from './components/OrcaChart';
 import PlaceholderChart from './components/PlaceholderChart';
+import ArbitrageStatus from './components/ArbitrageStatus';
 import { fetchRaydiumPrice, fetchOrcaPrice, checkArbitrageProfitability, executeArbitrageTransaction } from './utils/solana';
 import { TOKEN_MINTS } from './constants';
 import { PricePoint } from './types';
@@ -42,6 +43,18 @@ type TokenName = keyof typeof TOKEN_MINTS;
 const ALL_TOKEN_PAIRS = ['SOL/USDC', 'POPCAT/SOL', 'FARTCOIN/SOL', 'JTO/SOL', 'TRUMP/SOL'] as const;
 type TokenPair = (typeof ALL_TOKEN_PAIRS)[number];
 
+interface ArbitrageResult {
+  isProfitable: boolean;
+  profit: number;
+  buyMarket: string;
+  sellMarket: string;
+  loanAmount: number;
+  tokensBought: number;
+  minTokensBought: number;
+  priceImpact: number;
+  rate: number;
+}
+
 function App() {
   const [selectedPair, setSelectedPair] = useState<TokenPair>('SOL/USDC');
   const [raydiumPrice, setRaydiumPrice] = useState<number | null>(null);
@@ -53,6 +66,7 @@ function App() {
   const [orcaLoading, setOrcaLoading] = useState(true);
   const [orcaError, setOrcaError] = useState<string | null>(null);
   const [isBotActive, setIsBotActive] = useState(false);
+  const [arbitrageResult, setArbitrageResult] = useState<ArbitrageResult | null>(null);
 
   // Fetch prices on pair change
   useEffect(() => {
@@ -90,6 +104,7 @@ function App() {
     setRaydiumPriceHistory([]);
     setOrcaPriceHistory([]);
     setIsBotActive(false);
+    setArbitrageResult(null);
 
     fetchPrices();
     intervalId = setInterval(fetchPrices, 5000);
@@ -104,22 +119,15 @@ function App() {
       return;
     }
 
-    console.log(`Arbitrage Bot Running for ${selectedPair}`);
-    console.log(`Raydium Price: ${raydiumPrice ?? 'N/A'}`);
-    console.log(`Orca Price: ${orcaPrice ?? 'N/A'}`);
-
     if (raydiumPrice && orcaPrice) {
-      const { isProfitable, profit, buyMarket, sellMarket, loanAmount } = await checkArbitrageProfitability(
+      const result = await checkArbitrageProfitability(
         selectedPair,
         raydiumPrice,
         orcaPrice
       );
+      setArbitrageResult(result);
 
-      if (isProfitable) {
-        console.log(
-          `Profitable arbitrage opportunity! Buy on ${buyMarket}, sell on ${sellMarket}. ` +
-          `Loan amount: ${loanAmount} SOL, Estimated profit: ${profit.toFixed(6)} tokens`
-        );
+      if (result.isProfitable) {
         try {
           const signature = await executeArbitrageTransaction(selectedPair, wallet);
           if (signature) {
@@ -130,14 +138,15 @@ function App() {
         } catch (err) {
           console.error('Error executing arbitrage:', err);
         }
-      } else {
-        console.log(`No profitable arbitrage opportunity. Loan amount: ${loanAmount} SOL`);
       }
     }
   };
 
   useEffect(() => {
-    if (!isBotActive) return;
+    if (!isBotActive) {
+      setArbitrageResult(null);
+      return;
+    }
 
     runArbitrageBot();
     const intervalId = setInterval(runArbitrageBot, 5000);
@@ -160,13 +169,20 @@ function App() {
           </button>
         ))}
       </div>
-      <div className="button-group" style={{ display: 'flex', marginLeft: 'auto', gap: '10px', alignItems: 'center' }}>
-        <button
-          className={`arbitrage-bot-button ${isBotActive ? 'active' : 'inactive'}`}
-          onClick={() => setIsBotActive(!isBotActive)}
-        >
-          Arbitrage Bot: {isBotActive ? 'Active' : 'Inactive'}
-        </button>
+      <div className="status-button-container">
+        <ArbitrageStatus
+          isBotActive={isBotActive}
+          arbitrageResult={arbitrageResult}
+          selectedPair={selectedPair}
+        />
+        <div className="button-group">
+          <button
+            className={`arbitrage-bot-button ${isBotActive ? 'active' : 'inactive'}`}
+            onClick={() => setIsBotActive(!isBotActive)}
+          >
+            Arbitrage Bot: {isBotActive ? 'Active' : 'Inactive'}
+          </button>
+        </div>
       </div>
       <div className="row">
         <RaydiumChart

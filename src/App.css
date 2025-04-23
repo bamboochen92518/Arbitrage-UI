@@ -82,6 +82,207 @@ canvas {
   justify-content: center;
 }
 
+/* New styles for token pair selector */
+.token-pair-selector {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.token-pair-button {
+  padding: 12px 24px;
+  font-size: 16px;
+  font-family: 'Inter', Arial, sans-serif; /* Modern font, fallback to Arial */
+  background: linear-gradient(135deg, #6e8efb 0%, #a777e3 100%); /* Gradient background */
+  color: white;
+  border: none; /* Remove border for a cleaner look */
+  border-radius: 8px; /* Softer corners */
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+}
+
+.token-pair-button:hover {
+  background: linear-gradient(135deg, #5a78e8 0%, #9466d1 100%); /* Slightly darker gradient */
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3); /* Elevated shadow */
+  transform: translateY(-2px); /* Slight lift effect */
+}
+
+.token-pair-button.active {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%); /* Vibrant active gradient */
+  color: white;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+  transform: scale(0.98); /* Subtle press effect */
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .row {
+    grid-template-columns: 1fr; /* Stack charts vertically on small screens */
+  }
+
+  .token-pair-button {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+}
+
+/* Arbitrage */
+.status-button-container {
+  display: flex;
+  width: 100%-20px; /* Full viewport width */
+  margin: 0;
+  padding: 0;
+  align-items: flex-start; /* Align items to the top */
+  gap: 20px; /* Space between text box and button */
+}
+
+.arbitrage-status {
+  flex: 1; /* Take remaining space */
+  margin: 0;
+  padding: 10px;
+  border-radius: 4px; /* Sharper corners */
+  text-align: left; /* All text left-aligned */
+  transition: all 0.2s ease;
+  font-family: 'Roboto Mono', monospace; /* Tech-inspired font */
+  background: #1a202c; /* Dark gray-black base */
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  border: 1px solid #2d3748; /* Darker border */
+  position: relative;
+  overflow: hidden;
+}
+
+.arbitrage-status:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 20px rgba(0, 183, 235, 0.3); /* Cyan neon glow on hover */
+}
+
+.arbitrage-status.inactive {
+  background: #2d3748; /* Dark slate */
+  color: #a0aec0; /* Light gray for contrast */
+  border: 1px solid #4a5568; /* Slightly lighter dark border */
+}
+
+.arbitrage-status.active {
+  background: #1a202c; /* Same dark base */
+  color: #e2e8f0; /* Lighter gray for readability */
+  border: 1px solid #00b7eb; /* Cyan neon border */
+  box-shadow: 0 0 10px rgba(0, 183, 235, 0.5); /* Cyan glow */
+}
+
+.arbitrage-status.active.profit {
+  background: #1a202c;
+  color: #e2e8f0;
+  border: 1px solid #00ff00; /* Neon green border */
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.6); /* Neon green glow */
+}
+
+.arbitrage-status .profit-info {
+  background: rgba(0, 0, 0, 0.5); /* Dark transparent overlay */
+  padding: 15px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 183, 235, 0.3); /* Subtle cyan border */
+  transition: all 0.2s ease;
+  color: #e2e8f0;
+  position: relative;
+  overflow: hidden;
+}
+
+.arbitrage-status .profit-info:hover {
+  transform: scale(1.01);
+  box-shadow: 0 0 10px rgba(0, 183, 235, 0.4); /* Cyan glow on hover */
+}
+
+.arbitrage-status .no-profit {
+  background: #3c2f2f; /* Dark brown for no-profit */
+  padding: 15px;
+  border-radius: 4px;
+  color: #a0aec0;
+  border: 1px solid #744210; /* Dark amber border */
+}
+
+.arbitrage-status .inactive-state {
+  padding: 15px;
+  text-align: left; /* Left-align text */
+}
+
+.arbitrage-status h3 {
+  margin: 0 0 15px 0;
+  font-size: 1.3rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #ffffff; /* White for emphasis */
+  position: relative;
+}
+
+/* Glitch effect for headings in active/profit states */
+.arbitrage-status.active h3,
+.arbitrage-status.active.profit h3 {
+  animation: glitch 2s infinite;
+}
+
+@keyframes glitch {
+  0% { transform: translate(0); }
+  2% { transform: translate(-2px, 2px); }
+  4% { transform: translate(2px, -2px); }
+  6% { transform: translate(0); }
+  100% { transform: translate(0); }
+}
+
+/* Scanline effect for profit state */
+.arbitrage-status.active.profit::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 255, 0, 0.1) 50%,
+    transparent 100%
+  );
+  animation: scanline 4s infinite linear;
+  pointer-events: none;
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+/* Pulsing glow for profit state */
+@keyframes glow {
+  0% { box-shadow: 0 0 10px rgba(0, 255, 0, 0.6); }
+  50% { box-shadow: 0 0 20px rgba(0, 255, 0, 0.8); }
+  100% { box-shadow: 0 0 10px rgba(0, 255, 0, 0.6); }
+}
+
+.arbitrage-status.active.profit {
+  animation: glow 1.5s infinite ease-in-out;
+}
+
+.arbitrage-status p {
+  margin: 8px 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  opacity: 0.9;
+}
+
+.button-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a202c; /* Match arbitrage-status base */
+  border: 1px solid #2d3748;
+  border-radius: 4px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  min-width: 200px; /* Fixed width for button */
+}
+
 /* Arbitrage bot button */
 .arbitrage-bot-button {
   padding: 12px 24px;
@@ -89,6 +290,8 @@ canvas {
   border-radius: 8px;
   font-size: 18px;
   font-weight: 600;
+  width: 300px;
+  height: 60px;
   cursor: pointer;
   position: relative;
   overflow: hidden;
@@ -139,48 +342,29 @@ canvas {
   left: 100%;
 }
 
-/* New styles for token pair selector */
-.token-pair-selector {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.token-pair-button {
-  padding: 12px 24px;
-  font-size: 16px;
-  font-family: 'Inter', Arial, sans-serif; /* Modern font, fallback to Arial */
-  background: linear-gradient(135deg, #6e8efb 0%, #a777e3 100%); /* Gradient background */
-  color: white;
-  border: none; /* Remove border for a cleaner look */
-  border-radius: 8px; /* Softer corners */
-  cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Subtle shadow */
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
-}
-
-.token-pair-button:hover {
-  background: linear-gradient(135deg, #5a78e8 0%, #9466d1 100%); /* Slightly darker gradient */
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3); /* Elevated shadow */
-  transform: translateY(-2px); /* Slight lift effect */
-}
-
-.token-pair-button.active {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%); /* Vibrant active gradient */
-  color: white;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
-  transform: scale(0.98); /* Subtle press effect */
-}
-
 /* Responsive adjustments */
-@media (max-width: 600px) {
-  .row {
-    grid-template-columns: 1fr; /* Stack charts vertically on small screens */
+@media (max-width: 768px) {
+  .status-button-container {
+    flex-direction: column; /* Stack vertically on mobile */
+    align-items: stretch;
+    gap: 10px;
   }
 
-  .token-pair-button {
-    padding: 8px 16px;
-    font-size: 14px;
+  .arbitrage-status {
+    padding: 15px;
+    margin: 0;
+  }
+
+  .button-group {
+    padding: 15px;
+    min-width: auto; /* Allow button to stretch */
+  }
+
+  .arbitrage-status h3 {
+    font-size: 1.1rem;
+  }
+
+  .arbitrage-status p {
+    font-size: 0.9rem;
   }
 }
