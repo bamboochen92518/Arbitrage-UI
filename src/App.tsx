@@ -169,20 +169,20 @@ function App() {
           </button>
         ))}
       </div>
+      <div className="button-group" style={{ display: 'flex', marginLeft: 'auto', gap: '10px', alignItems: 'center' }}>
+        <button
+          className={`arbitrage-bot-button ${isBotActive ? 'active' : 'inactive'}`}
+          onClick={() => setIsBotActive(!isBotActive)}
+        >
+          Arbitrage Bot: {isBotActive ? 'Active' : 'Inactive'}
+        </button>
+      </div>
       <div className="status-button-container">
         <ArbitrageStatus
           isBotActive={isBotActive}
           arbitrageResult={arbitrageResult}
           selectedPair={selectedPair}
         />
-        <div className="button-group">
-          <button
-            className={`arbitrage-bot-button ${isBotActive ? 'active' : 'inactive'}`}
-            onClick={() => setIsBotActive(!isBotActive)}
-          >
-            Arbitrage Bot: {isBotActive ? 'Active' : 'Inactive'}
-          </button>
-        </div>
       </div>
       <div className="row">
         <RaydiumChart

@@ -87,17 +87,18 @@ canvas {
   display: flex;
   justify-content: center;
   gap: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .token-pair-button {
   padding: 12px 24px;
-  font-size: 16px;
+  font-size: 24px;
+  height: 60px;
   font-family: 'Inter', Arial, sans-serif; /* Modern font, fallback to Arial */
   background: linear-gradient(135deg, #6e8efb 0%, #a777e3 100%); /* Gradient background */
   color: white;
   border: none; /* Remove border for a cleaner look */
-  border-radius: 8px; /* Softer corners */
+  border-radius: 12px; /* Softer corners */
   cursor: pointer;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Subtle shadow */
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
